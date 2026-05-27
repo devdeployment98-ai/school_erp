@@ -11,6 +11,8 @@ const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const cookieParser = require("cookie-parser");
 const morgan = require("morgan");
+const fs = require("fs");
+const { execSync } = require("child_process");
 
 const { connectDB } = require("./config/db");
 
@@ -97,7 +99,24 @@ app.use("/api/submissions", submissionsRoutes);
 app.use("/api/analytics", analyticsRoutes);
 app.use("/api", contentRoutes);
 
-const distPath = path.resolve(__dirname, "..", "dist");
+app.get("/healthz", (_req, res) => {
+  res.status(200).json({ status: "ok" });
+});
+
+const appRoot = path.resolve(__dirname, "..");
+const distPath = path.join(appRoot, "dist");
+const indexPath = path.join(distPath, "index.html");
+
+if (!fs.existsSync(indexPath)) {
+  console.warn(`Frontend build not found at ${indexPath}. Running production build...`);
+  try {
+    execSync("npm run build", { cwd: appRoot, stdio: "inherit" });
+  } catch (error) {
+    console.error("Failed to build frontend during startup:", error);
+    process.exit(1);
+  }
+}
+
 const assetsPath = path.join(distPath, "assets");
 
 console.log("Serving frontend from:", distPath);
@@ -106,6 +125,10 @@ app.use("/assets", express.static(assetsPath));
 app.use(express.static(distPath));
 
 app.get(/.*/, (req, res) => {
+  if (req.path.startsWith("/api/")) {
+    return res.status(404).json({ error: "API route not found" });
+  }
+
   res.sendFile(path.join(distPath, "index.html"));
 });
 
