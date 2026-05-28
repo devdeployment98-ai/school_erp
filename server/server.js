@@ -72,17 +72,18 @@ app.use(rateLimit({
 }));
 app.use(cookieParser());
 
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      if (isAllowedOrigin(origin)) {
-        return callback(null, true);
-      }
-      return callback(new Error("CORS policy: Origin not allowed"));
-    },
-    credentials: true,
-  }),
-);
+// Apply CORS only to API routes so static frontend assets are served
+// without being blocked or returning JSON error payloads.
+const apiCorsOptions = {
+  origin: (origin, callback) => {
+    if (isAllowedOrigin(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error("CORS policy: Origin not allowed"));
+  },
+  credentials: true,
+};
+app.use('/api', cors(apiCorsOptions));
 app.use(express.json({ limit: "5mb" }));
 app.set("trust proxy", 1);
 
