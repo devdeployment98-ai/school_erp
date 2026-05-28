@@ -41,6 +41,8 @@ const allowedOrigins = [
 ].filter(Boolean);
 
 function isAllowedOrigin(origin) {
+  // In development allow any origin to simplify local and remote frontend testing.
+  if (process.env.NODE_ENV !== "production") return true;
   if (!origin) return true;
 
   try {
